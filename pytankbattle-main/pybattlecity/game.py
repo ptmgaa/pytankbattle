@@ -16,7 +16,7 @@ import datetime
 
 
 class Game:
-    ENEMIES_PER_LEVEL = 100
+    ENEMIES_PER_LEVEL = 20
 
     def __init__(self):
         self.r = random.Random()
@@ -92,10 +92,8 @@ class Game:
         old_tank = self.my_tank
         t, d, p = old_tank.tank_type, old_tank.direction, old_tank.position
 
-        # Xóa tank cũ
         old_tank.remove_from_parent()
 
-        # Lấy loại tank kế tiếp
         types = list(Tank.Type)
         current_index = types.index(t)
         next_type = types[(current_index + 1) % len(types)]
@@ -201,12 +199,7 @@ class Game:
 
     @property
     def is_victory(self):
-        try:
-            no_more = not self.ai.has_more_enemies
-            alive = len(self.ai.all_enemies)
-            return (not self.is_game_over) and no_more and (alive == 0)
-        except Exception:
-            return False
+        return self.ai.enemies_left_to_spawn == 0 and not self.ai.all_enemies
 
     def _log_result(self, result_label: str):
         try:

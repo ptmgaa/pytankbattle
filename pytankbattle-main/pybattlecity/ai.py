@@ -1,4 +1,3 @@
-# ai.py
 from tank import Tank, Direction
 from field import Field
 from util import ArmedTimer, GameObject
@@ -6,11 +5,8 @@ import random
 from itertools import cycle
 import heapq
 
-
-# ---------- A* pathfinding ----------
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
 
 def neighbors(cell, field_map):
     x, y = cell
@@ -51,15 +47,13 @@ def a_star(start, goal, field_map):
     path.reverse()
     return path
 
-
-# ---------- Tank AI ----------
 class TankAI:
     SPAWNING_DELAY = 1.5
     FIRE_TIMER = 1.0
 
     @staticmethod
     def dir_delay():
-        return random.uniform(0.3, 1.5)
+        return random.uniform(0.3, 1.0)
 
     def __init__(self, tank: Tank, field: Field):
         self.tank = tank
@@ -78,7 +72,6 @@ class TankAI:
         else:
             self._destroy()
 
-    # --- kiểm tra đường thẳng hàng/cột ---
     def find_target_in_line(self):
         # ưu tiên căn cứ
         if hasattr(self.field, 'my_base') and self.field.my_base and not self.field.my_base.broken:
@@ -92,7 +85,6 @@ class TankAI:
         return None
 
     def clear_line(self, target_pos):
-        # Kiểm tra xem tank có thể bắn thẳng tới target không
         tx, ty = target_pos
         x, y = self.tank.position
         map = self.field.map
@@ -100,13 +92,13 @@ class TankAI:
         c1, r1 = map.col_row_from_coords(x, y)
         c2, r2 = map.col_row_from_coords(tx, ty)
 
-        if c1 == c2:  # cùng cột
+        if c1 == c2:
             step = 1 if r2 > r1 else -1
             for r in range(r1 + step, r2, step):
                 if map.cells[r][c1] is not None:
                     return False
             return True
-        elif r1 == r2:  # cùng hàng
+        elif r1 == r2:
             step = 1 if c2 > c1 else -1
             for c in range(c1 + step, c2, step):
                 if map.cells[r1][c] is not None:
@@ -124,7 +116,6 @@ class TankAI:
 
     def pick_direction(self):
         c, r = self.field.map.col_row_from_coords(*self.tank.position)
-        # Chọn mục tiêu: căn cứ > tank người chơi
         targets = []
         if hasattr(self.field, 'my_base') and self.field.my_base and not self.field.my_base.broken:
             bx, by = self.field.map.col_row_from_coords(*self.field.my_base.position)
@@ -138,7 +129,6 @@ class TankAI:
             if path:
                 return path[0]
 
-        # fallback random
         prohibited_dir = set()
         if c <= 1: prohibited_dir.add(Direction.LEFT)
         if r <= 1: prohibited_dir.add(Direction.UP)
@@ -166,7 +156,6 @@ class TankAI:
                 self._destroy()
             self.tank.hit = False
 
-        # --- chủ động bắn nếu thấy đường thẳng ---
         target = self.find_target_in_line()
         if target and self.fire_timer.tick():
             self.align_direction_to(target)
@@ -177,17 +166,14 @@ class TankAI:
                 self.tank.fire()
                 self.fire_timer.start()
 
-        # --- thay đổi hướng di chuyển định kỳ ---
         if self.dir_timer.tick():
             self.tank.direction = self.pick_direction()
             self.dir_timer.delay = self.dir_delay()
             self.dir_timer.start()
 
-        # --- di chuyển, tránh đứng im ---
         prev_pos = self.tank.position
         self.tank.move_tank(self.tank.direction)
 
-        # nếu sau khi move mà không di chuyển được (bị kẹt) → chọn hướng khác
         if self.tank.position == prev_pos:
             self.tank.direction = self.pick_direction()
             self.tank.move_tank(self.tank.direction)
@@ -195,11 +181,8 @@ class TankAI:
     def reset(self):
         self.tank.direction = Direction.random()
 
-
-# ---------- Enemy Fraction AI ----------
 class EnemyFractionAI:
     MAX_ENEMIES = 5
-    RESPAWN_TIMER = 5.0
 
     def __init__(self, field: Field, tanks: GameObject, total_enemies=None):
         self.tanks = tanks
@@ -207,10 +190,9 @@ class EnemyFractionAI:
 
         self.spawn_points = { (x, y): None for x, y in field.respawn_points(True) }
 
-        self.spawn_timer = ArmedTimer(self.RESPAWN_TIMER)
-        self.dynamic_timer = ArmedTimer(5.0)  # cứ 5s spawn thêm tank
+        self.dynamic_timer = ArmedTimer(5.0)
 
-        self.spawn_increment = 3  # số tank spawn thêm mỗi lần
+        self.spawn_increment = 3
 
         self.enemy_queue = cycle([
             Tank.Type.ENEMY_SIMPLE,
@@ -221,9 +203,9 @@ class EnemyFractionAI:
 
         self._enemy_queue_iter = iter(self.enemy_queue)
 
-        self.total_to_spawn = total_enemies if total_enemies else 100
+        self.total_to_spawn = total_enemies if total_enemies else 20
         self.spawned_count = 0
-        self.killed_count = 0  # đã tiêu diệt bao nhiêu
+        self.killed_count = 0
 
         self.try_to_spawn_tank()
 
@@ -265,9 +247,7 @@ class EnemyFractionAI:
             else:
                 free_locations.append(loc)
 
-        # Nếu còn chỗ trống và còn tank để spawn
         if free_locations and self.has_more_enemies:
-            # Spawn tối đa 2 con mỗi lần (nếu còn chỗ)
             for _ in range(2):
                 if not free_locations or not self.has_more_enemies:
                     break
@@ -284,7 +264,6 @@ class EnemyFractionAI:
             t.stop()
 
     def update(self):
-        # spawn mỗi 5s
         if self.dynamic_timer.tick():
             self.dynamic_timer.start()
 

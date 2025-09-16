@@ -2,7 +2,6 @@ import pygame
 from config import ATLAS, GAME_WIDTH, GAME_HEIGHT
 from util import GameObject
 
-
 class GameOverLabel(GameObject):
     def __init__(self):
         super().__init__()
@@ -22,8 +21,7 @@ class GameOverLabel(GameObject):
 class GameWinLabel(GameObject):
     def __init__(self):
         super().__init__()
-        # Dùng sprite khác hoặc chữ WIN
-        font = pygame.font.SysFont("Arial", 40, True)
+        font = pygame.font.SysFont("Time new roman", 40, True)
         self._image = font.render("YOU WIN!", True, (255, 255, 0))
         self.size = self._image.get_size()
         self.position = (GAME_WIDTH // 2 - self.size[0] // 2,
